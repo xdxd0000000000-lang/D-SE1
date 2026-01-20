@@ -21,7 +21,8 @@ public class MainActivity extends AppCompatActivity {
 
         Fragment homeefragment = new HomeeFragment();
         Fragment profilefragment = new profileFragment();
-        Fragment settingfragment = new settingFragment();
+        Fragment mapfragment = new mapFragment();
+        Fragment senserfragment = new senserFragment();
 
         setCurrentFragment(homeefragment);
 
@@ -34,9 +35,13 @@ public class MainActivity extends AppCompatActivity {
             } else if (id == R.id.profile) {
                 setCurrentFragment(profilefragment);
                 return true;
-            } else if (id == R.id.settings) {
-            setCurrentFragment(settingfragment);
+            } else if (id == R.id.map) {
+            setCurrentFragment(mapfragment);
             return true;
+            }
+            else if (id == R.id.senser) {
+                setCurrentFragment(senserfragment);
+                return true;
             }
             return false;
         });
