@@ -2,17 +2,19 @@ package com.earth.earth55;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
-
-import androidx.core.app.ActivityCompat;
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -23,107 +25,159 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
 
-import java.util.Objects;
-
+import java.io.IOException;
+import java.util.List;
 
 public class mapFragment extends Fragment {
 
-    private int locationRequestCode = 1000;
-    private Button button;
-    private SupportMapFragment mapFragment;
-    private FusedLocationProviderClient mFusedLocationClient;
-    private double[] clat = {0};
-    private double[] clng = {0};
+    private static final int LOCATION_REQUEST_CODE = 1000;
 
+    private Button button, button2;
+    private EditText editTextname;
+
+    private SupportMapFragment mapFragment;
+    private GoogleMap mMap;
+    private FusedLocationProviderClient fusedLocationClient;
+
+    private double clat = 0.0;
+    private double clng = 0.0;
 
     public mapFragment() {
         // Required empty public constructor
     }
 
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_map, container, false);
-        button = (Button) view.findViewById(R.id.button);
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
-        mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
 
-        if (ActivityCompat.checkSelfPermission(getActivity(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(getActivity(),
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(getActivity(), new
-                            String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION},
-                    locationRequestCode);
-        }
+        View view = inflater.inflate(R.layout.fragment_map, container, false);
+
+        // bind view
+        button = view.findViewById(R.id.button);
+        button2 = view.findViewById(R.id.button2);
+        editTextname = view.findViewById(R.id.editTextText);
+
+        fusedLocationClient =
+                LocationServices.getFusedLocationProviderClient(requireActivity());
+
+        mapFragment = (SupportMapFragment)
+                getChildFragmentManager().findFragmentById(R.id.map);
+
+        requestPermission();
+        getCurrentLocation();
+
         if (mapFragment != null) {
-            mapFragment.getMapAsync(callbackactive);
+            mapFragment.getMapAsync(mapReadyCallback);
         }
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mapFragment != null) {
-                    mapFragment.getMapAsync(callbackactive);
-                }
-                Toast.makeText(getActivity(), "Get Your Location",
-                        Toast.LENGTH_SHORT).show();
+
+        // ปุ่มหาตำแหน่งปัจจุบัน
+        button.setOnClickListener(v -> {
+            getCurrentLocation();
+            if (mapFragment != null) {
+                mapFragment.getMapAsync(mapReadyCallback);
             }
+            Toast.makeText(getActivity(), "ตำแหน่งปัจจุบัน", Toast.LENGTH_SHORT).show();
         });
+
+        // ปุ่มค้นหาสถานที่
+        button2.setOnClickListener(v -> searchLocation());
+
         return view;
     }
 
-    private void Get_Current_location() {
-        if (ActivityCompat.checkSelfPermission(getActivity(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(getActivity(),
-                        Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    // ================= Permission =================
+    private void requestPermission() {
+        if (ActivityCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(requireActivity(),
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                    },
+                    LOCATION_REQUEST_CODE);
+        }
+    }
+
+    // ================= Current Location =================
+    private void getCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        mFusedLocationClient.getLastLocation()
-                .addOnSuccessListener(getActivity(), new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        if (location != null) {
-                            clat[0] = location.getLatitude();
-                            clng[0] = location.getLongitude();
-                        }
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(location -> {
+                    if (location != null) {
+                        clat = location.getLatitude();
+                        clng = location.getLongitude();
                     }
                 });
     }
-    private OnMapReadyCallback callbackactive = new OnMapReadyCallback() {
-        @Override
-        public void onMapReady(GoogleMap googleMap) {
-            Get_Current_location();
-            googleMap.clear();
-            String strtitle = "Kittisak Location";
-            String strsnippet = "กูอยู่นี่ " + clat[0] + ", " + clng[0];
-            LatLng cposition = new LatLng(clat[0], clng[0]);
-            MarkerOptions options = new MarkerOptions()
-                    .position(cposition)
-                    .title(strtitle)
-                    .snippet(strsnippet)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
 
-            LatLng cposition2 = new LatLng(15.246228413380893, 104.84522771608624);
-            MarkerOptions options2 = new MarkerOptions()
-                    .position(cposition2)
-                    .title("Maker 1")
-                    .snippet("คอมพิวเตอร์อยู่นี้")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+    // ================= Search Location =================
+    private void searchLocation() {
+        String location = editTextname.getText().toString().trim();
 
-            googleMap.addMarker(options);
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(cposition, 15));
+        if (location.isEmpty()) {
+            Toast.makeText(getActivity(), "กรุณาใส่ชื่อสถานที่", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        Geocoder geocoder = new Geocoder(getActivity());
+
+        try {
+            List<Address> addressList = geocoder.getFromLocationName(location, 1);
+
+            if (addressList == null || addressList.isEmpty()) {
+                Toast.makeText(getActivity(), "ไม่พบสถานที่", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Address address = addressList.get(0);
+            LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+            if (mMap != null) {
+                mMap.clear();
+
+                mMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title(location)
+                        .icon(BitmapDescriptorFactory
+                                .defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15));
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ================= Map =================
+    private final OnMapReadyCallback mapReadyCallback = googleMap -> {
+        mMap = googleMap;
+        mMap.clear();
+
+        LatLng current = new LatLng(clat, clng);
+
+        mMap.addMarker(new MarkerOptions()
+                .position(current)
+                .title("ตำแหน่งของฉัน")
+                .icon(BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+
+        LatLng fixed = new LatLng(15.246228413380893, 104.84522771608624);
+        mMap.addMarker(new MarkerOptions()
+                .position(fixed)
+                .title("Marker 1")
+                .snippet("คอมพิวเตอร์อยู่นี้")
+                .icon(BitmapDescriptorFactory
+                        .defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(fixed, 15));
     };
 }
