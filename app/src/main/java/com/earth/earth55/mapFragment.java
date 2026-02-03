@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -56,8 +57,32 @@ public class mapFragment extends Fragment {
         button = (Button) view.findViewById(R.id.button);
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
         mapFragment = (SupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+
+        if (ActivityCompat.checkSelfPermission(getActivity(),
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(getActivity(),
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(getActivity(), new
+                            String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION},
+                    locationRequestCode);
+        }
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(callbackactive);
+        }
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mapFragment != null) {
+                    mapFragment.getMapAsync(callbackactive);
+                }
+                Toast.makeText(getActivity(), "Get Your Location",
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
         return view;
     }
+
     private void Get_Current_location() {
         if (ActivityCompat.checkSelfPermission(getActivity(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
@@ -81,17 +106,24 @@ public class mapFragment extends Fragment {
         public void onMapReady(GoogleMap googleMap) {
             Get_Current_location();
             googleMap.clear();
-            String strtitle = "Your Location";
-            String strsnippet = "I am Here at " + clat[0] + ", " + clng[0];
+            String strtitle = "Kittisak Location";
+            String strsnippet = "กูอยู่นี่ " + clat[0] + ", " + clng[0];
             LatLng cposition = new LatLng(clat[0], clng[0]);
-
             MarkerOptions options = new MarkerOptions()
-                    .position(new LatLng(clat[0], clng[0]))
+                    .position(cposition)
                     .title(strtitle)
                     .snippet(strsnippet)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+
+            LatLng cposition2 = new LatLng(15.246228413380893, 104.84522771608624);
+            MarkerOptions options2 = new MarkerOptions()
+                    .position(cposition2)
+                    .title("Maker 1")
+                    .snippet("คอมพิวเตอร์อยู่นี้")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+
             googleMap.addMarker(options);
-            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(cposition, 12));
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(cposition, 15));
         }
     };
 }
